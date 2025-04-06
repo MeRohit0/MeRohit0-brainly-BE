@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import "dotenv/config";
-import { User, Content } from "./db";
+import { User, Content, Link } from "./db";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { userMiddleware } from "./middleware";
@@ -104,9 +104,47 @@ app.delete("/api/v1/content", userMiddleware, async (req, res) => {
   });
 });
 
-app.post("/api/v1/brain/share", (req, res) => {});
+app.post("/api/v1/brain/share", userMiddleware, async(req, res) => {
+  const share = req.body.share;
+  // @ts-ignore
+  const userId = req.userId; 
+  if(share){
+    const hash = (Math.random()*100000).toFixed().toString();
+    console.log(hash);
+    
+    Link.create({
+      hash,
+      userId 
+    })
+    res.json({
+      "link": hash
+    })
+  }else{
+    await Link.deleteMany({
+      userId
+    })
 
-app.get("/api/v1/brain/:shareLink", (req, res) => {});
+    res.json({
+      message : "Link deleted"
+    })
+  }
+});
+
+app.get("/api/v1/brain/:shareLink", userMiddleware , async(req, res) => {
+  const hash = req.params.shareLink;
+  const user = await Link.findOne({
+    hash
+  })
+  
+  const data = await Content.findOne({
+    userId : user!.userId
+  })
+
+  res.status(200).json({
+    data
+  })
+
+});
 
 app.listen(port, async () => {
   await mongoose.connect(`${process.env.DB_KEY}`);
