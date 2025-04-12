@@ -18,7 +18,9 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "^9.0.9",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2"

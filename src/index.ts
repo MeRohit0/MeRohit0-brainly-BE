@@ -4,12 +4,15 @@ import { User, Content, Link } from "./db";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { userMiddleware } from "./middleware";
+import { random } from "./util";
+import cors from "cors";
 
 const app = express();
 const port = 3000;
 const JWT_SECRET = process.env.JWT_SECRET_USER;
 
 app.use(express.json());
+app.use(cors())
 
 // Todo : zod input validation , password hashing pending
 app.post("/api/v1/signup", async (req, res) => {
@@ -60,10 +63,7 @@ interface UserIdRequest extends Request {
   userId?: string;
 }
 
-app.post(
-  "/api/v1/content",
-  userMiddleware,
-  async (req: UserIdRequest, res: Response) => {
+app.post("/api/v1/content", userMiddleware, async (req: UserIdRequest, res: Response) => {
     const { link, title, type } = req.body;
     await Content.create({
       link,
@@ -109,15 +109,25 @@ app.post("/api/v1/brain/share", userMiddleware, async(req, res) => {
   // @ts-ignore
   const userId = req.userId; 
   if(share){
-    const hash = (Math.random()*100000).toFixed().toString();
-    console.log(hash);
+
+    const value = await Link.findOne({
+      userId
+    })
+
+    if(value) {
+      res.json({
+        hash: value.hash
+      })
+      return;
+    }
+    const hash = random(10);
     
-    Link.create({
+    await Link.create({
       hash,
       userId 
     })
     res.json({
-      "link": hash
+      hash:  hash
     })
   }else{
     await Link.deleteMany({
@@ -130,19 +140,37 @@ app.post("/api/v1/brain/share", userMiddleware, async(req, res) => {
   }
 });
 
-app.get("/api/v1/brain/:shareLink", userMiddleware , async(req, res) => {
+app.get("/api/v1/brain/:shareLink" , async(req, res) => {
   const hash = req.params.shareLink;
-  const user = await Link.findOne({
+  const link = await Link.findOne({
     hash
   })
-  
-  const data = await Content.findOne({
-    userId : user!.userId
-  })
+  if(link){
+    const data = await Content.findOne({
+      userId : link.userId
+    })
+    
+    const user = await User.findOne({
+      _id: data?.userId
+    },"username")
+    
+    if(!user){
+      res.status(411).json({
+        message : "user Not found, Backend error should not happen "
+      })
+      return
+    }
 
-  res.status(200).json({
-    data
-  })
+    res.status(200).json({
+      username : user.username,
+      data
+    })
+    
+  }else{
+    res.status(400).json({
+      message : "invalid link"
+    })    
+  }
 
 });
 

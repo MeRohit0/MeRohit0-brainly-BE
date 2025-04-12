@@ -24,7 +24,7 @@ const tagsSchema = new Schema({
 
 const linkSchema = new Schema({
   hash: { type: String , unique: true},
-  userId: { type: ObjectId, ref: "User" },
+  userId: { type: ObjectId, ref: "User" ,unique: true},
 });
 
 export const User = mongoose.model("User", userSchema);
